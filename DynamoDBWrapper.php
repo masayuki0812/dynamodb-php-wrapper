@@ -82,6 +82,56 @@ class DynamoDBWrapper
         return $this->convertItem($item['Attributes']);
     }
 
+    public function createTable($tableName, $hashKeyName, $hashKeyType, $rangeKeyName = null, $rangeKeyType = null, $secondaryIndices = null) {
+
+        $attributeDefinitions = array();
+        $keySchema = array();
+
+        // HashKey
+        $attributeDefinitions []= array('AttributeName' => $hashKeyName, 'AttributeType' => $hashKeyType);
+        $keySchema []= array('AttributeName' => $hashKeyName, 'KeyType' => 'HASH');
+
+        // RangeKey
+        if (isset($rangeKeyName)) {
+            $attributeDefinitions []= array('AttributeName' => $rangeKeyName, 'AttributeType' => $rangeKeyType);
+            $keySchema []= array('AttributeName' => $rangeKeyName, 'KeyType' => 'RANGE');
+        }
+
+        // Generate Args
+        $args = array(
+            'TableName' => $tableName,
+            'AttributeDefinitions' => $attributeDefinitions,
+            'KeySchema' => $keySchema,
+            'ProvisionedThroughput' => array(
+                'ReadCapacityUnits'  => 1,
+                'WriteCapacityUnits' => 1
+            )
+        );
+
+        // Set Local Secondary Index if needed
+        if (isset($secondaryIndices)) {
+            $LSI = array();
+            foreach ($secondaryIndices as $si) {
+                $LSI []= array(
+                    'IndexName' => $si['name'].'Index',
+                    'KeySchema' => array(
+                        array('AttributeName' => $hashKeyName, 'KeyType' => 'HASH'),
+                        array('AttributeName' => $si['name'], 'KeyType' => 'RANGE')
+                    ),
+                    'Projection' => array(
+                        'ProjectionType' => $si['projection_type']
+                    ),
+                );
+                $attributeDefinitions []= array('AttributeName' => $si['name'], 'AttributeType' => $si['type']);
+            }
+            $args['LocalSecondaryIndexes'] = $LSI;
+            $args['AttributeDefinitions'] = $attributeDefinitions;
+        }
+
+        $this->client->createTable($args);
+        $this->client->waitUntilTableExists(array('TableName' => $tableName));
+    }
+
     protected function convertItem($item)
     {
         $converted = array();
