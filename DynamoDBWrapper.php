@@ -22,15 +22,29 @@ class DynamoDBWrapper
 
     public function batchGet($tableName, $keys)
     {
-        $result = $this->client->batchGetItem(array(
-            'RequestItems' => array(
-                 $tableName => array(
-                    'Keys' => $keys,
+        $results = array();
+
+        while (count($keys) > 0) {
+            $targetKeys = array_splice($keys, 0, 100);
+
+            $result = $this->client->batchGetItem(array(
+                'RequestItems' => array(
+                     $tableName => array(
+                        'Keys' => $targetKeys,
+                     ),
                  ),
-             ),
-        ));
-        $items = $result->getPath("Responses/{$tableName}");
-        return $this->convertItems($items);
+            ));
+            $items = $result->getPath("Responses/{$tableName}");
+            $results = array_merge($results, $this->convertItems($items));
+
+            // if some keys not processed, try again as next request
+            $unprocessedKeys = $result->getPath("UnprocessedKeys/{$tableName}");
+            if (count($unprocessedKeys) > 0) {
+                $keys = array_merge($keys, $unprocessedKeys);
+            }
+        }
+
+        return $results;
     }
 
     public function query($tableName, $keyConditions, $options = array())
