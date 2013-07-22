@@ -33,30 +33,36 @@ class DynamoDBWrapper
         return $this->convertItems($items);
     }
 
-    public function query($tableName, $keyConditions, $limit = 100, $index = null)
+    public function query($tableName, $keyConditions, $options = array())
     {
         $args = array(
             'TableName' => $tableName,
             'KeyConditions' => $keyConditions,
             'ScanIndexForward' => false,
-            'Limit' => $limit,
+            'Limit' => 100,
         );
-        if (isset($index)) {
-            $args['IndexName'] = $index;
+        if (array_key_exists('IndexName', $options)) {
+            $args['IndexName'] = $options['IndexName'];
+        }
+        if (array_key_exists('Limit', $options)) {
+            $args['Limit'] = $options['Limit']+0;
+        }
+        if (array_key_exists('ExclusiveStartKey', $options)) {
+            $args['ExclusiveStartKey'] = $options['ExclusiveStartKey'];
         }
         $result = $this->client->query($args);
         return $this->convertItems($result['Items']);
     }
 
-    public function count($tableName, $keyConditions, $index = null)
+    public function count($tableName, $keyConditions, $options = array())
     {
         $args = array(
             'TableName' => $tableName,
             'KeyConditions' => $keyConditions,
             'Select' => 'COUNT',
         );
-        if (isset($index)) {
-            $args['IndexName'] = $index;
+        if (array_key_exists('IndexName', $options)) {
+            $args['IndexName'] = $options['IndexName'];
         }
         $result = $this->client->query($args);
         return $result['Count'];
