@@ -1,6 +1,7 @@
 <?php
 
 use Aws\DynamoDb\DynamoDbClient;
+use Aws\DynamoDb\Exception\ConditionalCheckFailedException;
 
 class DynamoDBWrapper
 {
@@ -89,6 +90,21 @@ class DynamoDBWrapper
             'ScanFilter' => $filter,
         ));
         return $this->convertItems($items);
+    }
+
+    public function put($tableName, $item, $expected = array())
+    {
+        try {
+            $item = $this->client->putItem(array(
+                'TableName' => $tableName,
+                'Item' => $item,
+                'Expected' => $expected,
+            ));
+        }
+        catch (ConditionalCheckFailedException $e) {
+            return false;
+        }
+        return true;
     }
 
     public function update($tableName, $key, $update)
