@@ -94,12 +94,17 @@ class DynamoDBWrapper
 
     public function put($tableName, $item, $expected = array())
     {
+        $args = array(
+            'TableName' => $tableName,
+            'Item' => $item,
+            'Expected' => $expected,
+        );
+        if (!empty($expected)) {
+            $item['Expected'] = $expected;
+        }
+        // Put and catch exception when ConditionalCheckFailed
         try {
-            $item = $this->client->putItem(array(
-                'TableName' => $tableName,
-                'Item' => $item,
-                'Expected' => $expected,
-            ));
+            $item = $this->client->putItem($args);
         }
         catch (ConditionalCheckFailedException $e) {
             return false;
@@ -107,14 +112,24 @@ class DynamoDBWrapper
         return true;
     }
 
-    public function update($tableName, $key, $update)
+    public function update($tableName, $key, $update, $expected = array())
     {
-        $item = $this->client->updateItem(array(
+        $args = array(
             'TableName' => $tableName,
             'Key' => $key,
             'AttributeUpdates' => $update,
             'ReturnValues' => 'UPDATED_NEW',
-        ));
+        );
+        if (!empty($expected)) {
+            $item['Expected'] = $expected;
+        }
+        // Put and catch exception when ConditionalCheckFailed
+        try {
+            $item = $this->client->updateItem($args);
+        }
+        catch (ConditionalCheckFailed $e) {
+            return null;
+        }
         return $this->convertItem($item['Attributes']);
     }
 
