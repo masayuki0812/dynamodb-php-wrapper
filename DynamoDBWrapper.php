@@ -133,6 +133,18 @@ class DynamoDBWrapper
         return $this->convertItem($item['Attributes']);
     }
 
+    public function delete($tableName, $key)
+    {
+        $args = array(
+            'TableName' => $tableName,
+            'Key' => $key,
+            'ReturnValues' => 'ALL_OLD',
+        );
+        $result = $this->client->deleteItem($args);
+        print_r($result['Attributes']);
+        return $this->convertItem($result['Attributes']);
+    }
+
     public function createTable($tableName, $hashKeyName, $hashKeyType, $rangeKeyName = null, $rangeKeyType = null, $secondaryIndices = null) {
 
         $attributeDefinitions = array();
