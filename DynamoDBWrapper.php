@@ -197,6 +197,8 @@ class DynamoDBWrapper
 
     protected function convertItem($item)
     {
+        if (empty($item)) return null;
+
         $converted = array();
         foreach ($item as $k => $v) {
             if (array_key_exists('S', $v)) {
