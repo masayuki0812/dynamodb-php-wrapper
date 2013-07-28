@@ -111,6 +111,39 @@ class DynamoDBWrapper
         return true;
     }
 
+    public function batchPut($tableName, $items)
+    {
+        $unprocessedRequests = array();
+
+        while (count($items) > 0) {
+            $requests = array();
+
+            if (count($unprocessedRequests) > 0) {
+                $requests = array_merge($requests, $unprocessedRequests);
+            }
+
+            $targetItems = array_splice($items, 0, 25 - count($requests));
+            foreach ($targetItems as $targetItem) {
+                $requests[] = array(
+                    'PutRequest' => array(
+                        'Item' => $targetItem
+                    )
+                );
+            }
+
+            $result = $this->client->batchWriteItem(array(
+                'RequestItems' => array(
+                    $tableName => $requests,
+                ),
+            ));
+
+            // if some items not processed, try again as next request
+            $unprocessedRequests = $result->getPath("UnprocessedItems/{$tableName}");
+        }
+
+        return true;
+    }
+
     public function update($tableName, $key, $update, $expected = array())
     {
         $args = array(
