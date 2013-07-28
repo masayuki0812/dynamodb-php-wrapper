@@ -21,7 +21,7 @@ class DynamoDBWrapper
         return $this->convertItem($item['Item']);
     }
 
-    public function batchGet($tableName, $keys)
+    public function batchGet($tableName, $keys, $options = array())
     {
         $results = array();
 
@@ -43,6 +43,22 @@ class DynamoDBWrapper
             if (count($unprocessedKeys) > 0) {
                 $keys = array_merge($keys, $unprocessedKeys);
             }
+        }
+
+        if (array_key_exists('Order', $options)) {
+            if ( ! array_key_exists('Key', $options['Order'])) {
+                throw new Exception("Order option needs 'Key'.");
+            }
+            $key = lcfirst($options['Order']['Key']);
+
+            if (array_key_exists('Forward', $options['Order']) && !$options['Order']['Forward']) {
+                $vals = array('b', 'a');
+            } else {
+                $vals = array('a', 'b');
+            }
+
+            $f = 'return ($'.$vals[0].'[\''.$key.'\'] - $'.$vals[1].'[\''.$key.'\']);';
+            usort($results, create_function('$a,$b',$f));
         }
 
         return $results;
