@@ -97,7 +97,6 @@ class DynamoDBWrapper
         $args = array(
             'TableName' => $tableName,
             'Item' => $item,
-            'Expected' => $expected,
         );
         if (!empty($expected)) {
             $item['Expected'] = $expected;
