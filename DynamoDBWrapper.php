@@ -45,13 +45,13 @@ class DynamoDBWrapper
             }
         }
 
-        if (array_key_exists('Order', $options)) {
-            if ( ! array_key_exists('Key', $options['Order'])) {
+        if (isset($options['Order'])) {
+            if ( ! isset($options['Order']['Key'])) {
                 throw new Exception("Order option needs 'Key'.");
             }
             $key = $options['Order']['Key'];
 
-            if (array_key_exists('Forward', $options['Order']) && !$options['Order']['Forward']) {
+            if (isset($options['Order']['Forward']) && !$options['Order']['Forward']) {
                 $vals = array('b', 'a');
             } else {
                 $vals = array('a', 'b');
@@ -72,13 +72,13 @@ class DynamoDBWrapper
             'ScanIndexForward' => false,
             'Limit' => 100,
         );
-        if (array_key_exists('IndexName', $options)) {
+        if (isset($options['IndexName'])) {
             $args['IndexName'] = $options['IndexName'];
         }
-        if (array_key_exists('Limit', $options)) {
+        if (isset($options['Limit'])) {
             $args['Limit'] = $options['Limit']+0;
         }
-        if (array_key_exists('ExclusiveStartKey', $options)) {
+        if (isset($options['ExclusiveStartKey'])) {
             $args['ExclusiveStartKey'] = $options['ExclusiveStartKey'];
         }
         $result = $this->client->query($args);
@@ -92,7 +92,7 @@ class DynamoDBWrapper
             'KeyConditions' => $keyConditions,
             'Select' => 'COUNT',
         );
-        if (array_key_exists('IndexName', $options)) {
+        if (isset($options['IndexName'])) {
             $args['IndexName'] = $options['IndexName'];
         }
         $result = $this->client->query($args);
@@ -248,13 +248,13 @@ class DynamoDBWrapper
 
         $converted = array();
         foreach ($item as $k => $v) {
-            if (array_key_exists('S', $v)) {
+            if (isset($v['S'])) {
                 $converted[$k] = $v['S'];
             }
-            else if (array_key_exists('N', $v)) {
+            else if (isset($v['N'])) {
                 $converted[$k] = $v['N'];
             }
-            else if (array_key_exists('SS', $v)) {
+            else if (isset($v['SS'])) {
                 $converted[$k] = $v['SS'];
             }
             else {
