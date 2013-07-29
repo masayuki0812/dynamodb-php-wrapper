@@ -192,6 +192,39 @@ class DynamoDBWrapper
         return $this->convertItem($result['Attributes']);
     }
 
+    public function batchDelete($tableName, $keys)
+    {
+        $unprocessedRequests = array();
+
+        while (count($keys) > 0) {
+            $requests = array();
+
+            if (count($unprocessedRequests) > 0) {
+                $requests = array_merge($requests, $unprocessedRequests);
+            }
+
+            $targetKeys = array_splice($keys, 0, 25 - count($requests));
+            foreach ($targetKeys as $targetKey) {
+                $requests[] = array(
+                    'DeleteRequest' => array(
+                        'Key' => $targetKey
+                    )
+                );
+            }
+
+            $result = $this->client->batchWriteItem(array(
+                'RequestItems' => array(
+                    $tableName => $requests,
+                ),
+            ));
+
+            // if some items not processed, try again as next request
+            $unprocessedRequests = $result->getPath("UnprocessedItems/{$tableName}");
+        }
+
+        return true;
+    }
+
     public function createTable($tableName, $hashKeyName, $hashKeyType, $rangeKeyName = null, $rangeKeyType = null, $secondaryIndices = null) {
 
         $attributeDefinitions = array();
