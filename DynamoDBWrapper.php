@@ -189,7 +189,6 @@ class DynamoDBWrapper
             'ReturnValues' => 'ALL_OLD',
         );
         $result = $this->client->deleteItem($args);
-        print_r($result['Attributes']);
         return $this->convertItem($result['Attributes']);
     }
 
