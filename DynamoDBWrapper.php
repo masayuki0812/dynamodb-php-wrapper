@@ -49,7 +49,7 @@ class DynamoDBWrapper
             if ( ! array_key_exists('Key', $options['Order'])) {
                 throw new Exception("Order option needs 'Key'.");
             }
-            $key = lcfirst($options['Order']['Key']);
+            $key = $options['Order']['Key'];
 
             if (array_key_exists('Forward', $options['Order']) && !$options['Order']['Forward']) {
                 $vals = array('b', 'a');
@@ -250,13 +250,13 @@ class DynamoDBWrapper
         $converted = array();
         foreach ($item as $k => $v) {
             if (array_key_exists('S', $v)) {
-                $converted[lcfirst($k)] = $v['S'];
+                $converted[$k] = $v['S'];
             }
             else if (array_key_exists('N', $v)) {
-                $converted[lcfirst($k)] = $v['N'];
+                $converted[$k] = $v['N'];
             }
             else if (array_key_exists('SS', $v)) {
-                $converted[lcfirst($k)] = $v['SS'];
+                $converted[$k] = $v['SS'];
             }
             else {
                 throw new Exception('Not implemented type');
