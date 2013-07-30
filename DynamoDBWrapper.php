@@ -52,9 +52,9 @@ class DynamoDBWrapper
             $key = $options['Order']['Key'];
 
             if (isset($options['Order']['Forward']) && !$options['Order']['Forward']) {
-                $vals = array('a', 'b');
-            } else {
                 $vals = array('b', 'a');
+            } else {
+                $vals = array('a', 'b');
             }
 
             $f = 'return ($'.$vals[0].'[\''.$key.'\'] - $'.$vals[1].'[\''.$key.'\']);';
