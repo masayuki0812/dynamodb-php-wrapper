@@ -12,12 +12,16 @@ class DynamoDBWrapper
         $this->client = DynamoDbClient::factory($args);
     }
 
-    public function get($tableName, $key)
+    public function get($tableName, $key, $options = array())
     {
-        $item = $this->client->getItem(array(
+        $args = array(
             'TableName' => $tableName,
             'Key' => $key,
-        ));
+        );
+        if (isset($options['ConsistentRead'])) {
+            $args['ConsistentRead'] = $options['ConsistentRead'];
+        }
+        $item = $this->client->getItem($args);
         return $this->convertItem($item['Item']);
     }
 
