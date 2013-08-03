@@ -288,6 +288,39 @@ class DynamoDBWrapper
         $this->client->waitUntilTableNotExists(array('TableName' => $tableName));
     }
 
+    public function emptyTable($table) {
+        // Get table info
+        $result = $this->client->describeTable(array('TableName' => $table));
+        $keySchema = $result['Table']['KeySchema'];
+        foreach ($keySchema as $schema) {
+            if ($schema['KeyType'] === 'HASH') {
+                $hashKeyName = $schema['AttributeName'];
+            }
+            else if ($schema['KeyType'] === 'RANGE') {
+                $rangeKeyName = $schema['AttributeName'];
+            }
+        }
+
+        // Delete items in the table
+        $scan = $this->client->getIterator('Scan', array('TableName' => $table));
+        foreach ($scan as $item) {
+            // set hash key
+            $hashKeyType = array_key_exists('S', $item[$hashKey]) ? 'S' : 'N';
+            $key = array(
+                $hashKey => array($hashKeyType => $item[$hashKey][$hashKeyType]),
+            );
+            // set range key if defined
+            if (isset($rangeKey)) {
+                $rangeKeyType = array_key_exists('S', $item[$rangeKey]) ? 'S' : 'N';
+                $key[$rangeKey] = array($rangeKeyType => $item[$rangeKey][$rangeKeyType]);
+            }
+            $client->deleteItem(array(
+                'TableName' => $table,
+                'Key' => $key
+            ));
+        }
+    }
+
     protected function convertItem($item)
     {
         if (empty($item)) return null;
