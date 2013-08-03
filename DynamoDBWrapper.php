@@ -282,6 +282,12 @@ class DynamoDBWrapper
         $this->client->waitUntilTableExists(array('TableName' => $tableName));
     }
 
+    public function deleteTable($tableName)
+    {
+        $this->client->deleteTable(array('TableName' => $tableName));
+        $this->client->waitUntilTableNotExists(array('TableName' => $tableName));
+    }
+
     protected function convertItem($item)
     {
         if (empty($item)) return null;
