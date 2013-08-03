@@ -305,14 +305,14 @@ class DynamoDBWrapper
         $scan = $this->client->getIterator('Scan', array('TableName' => $table));
         foreach ($scan as $item) {
             // set hash key
-            $hashKeyType = array_key_exists('S', $item[$hashKey]) ? 'S' : 'N';
+            $hashKeyType = array_key_exists('S', $item[$hashKeyName]) ? 'S' : 'N';
             $key = array(
-                $hashKey => array($hashKeyType => $item[$hashKey][$hashKeyType]),
+                $hashKeyName => array($hashKeyType => $item[$hashKeyName][$hashKeyType]),
             );
             // set range key if defined
-            if (isset($rangeKey)) {
-                $rangeKeyType = array_key_exists('S', $item[$rangeKey]) ? 'S' : 'N';
-                $key[$rangeKey] = array($rangeKeyType => $item[$rangeKey][$rangeKeyType]);
+            if (isset($rangeKeyName)) {
+                $rangeKeyType = array_key_exists('S', $item[$rangeKeyName]) ? 'S' : 'N';
+                $key[$rangeKeyName] = array($rangeKeyType => $item[$rangeKeyName][$rangeKeyType]);
             }
             $client->deleteItem(array(
                 'TableName' => $table,
