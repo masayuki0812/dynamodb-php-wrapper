@@ -73,9 +73,12 @@ class DynamoDBWrapper
         $args = array(
             'TableName' => $tableName,
             'KeyConditions' => $keyConditions,
-            'ScanIndexForward' => false,
+            'ScanIndexForward' => true,
             'Limit' => 100,
         );
+        if (isset($options['ScanIndexForward'])) {
+            $args['ScanIndexForward'] = $options['ScanIndexForward'];
+        }
         if (isset($options['IndexName'])) {
             $args['IndexName'] = $options['IndexName'];
         }
