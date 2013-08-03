@@ -314,7 +314,7 @@ class DynamoDBWrapper
                 $rangeKeyType = array_key_exists('S', $item[$rangeKeyName]) ? 'S' : 'N';
                 $key[$rangeKeyName] = array($rangeKeyType => $item[$rangeKeyName][$rangeKeyType]);
             }
-            $client->deleteItem(array(
+            $this->client->deleteItem(array(
                 'TableName' => $table,
                 'Key' => $key
             ));
