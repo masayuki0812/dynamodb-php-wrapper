@@ -91,7 +91,7 @@ class DynamoDBWrapper
             $args['Limit'] = $options['Limit']+0;
         }
         if (isset($options['ExclusiveStartKey'])) {
-            $args['ExclusiveStartKey'] = $options['ExclusiveStartKey'];
+            $args['ExclusiveStartKey'] = $this->convertAttributes($options['ExclusiveStartKey']);
         }
         $result = $this->client->query($args);
         return $this->convertItems($result['Items']);
