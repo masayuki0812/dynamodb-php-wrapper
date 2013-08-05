@@ -16,7 +16,7 @@ class DynamoDBWrapper
     {
         $args = array(
             'TableName' => $tableName,
-            'Key' => $key,
+            'Key' => $this->convertAttributes($key),
         );
         if (isset($options['ConsistentRead'])) {
             $args['ConsistentRead'] = $options['ConsistentRead'];
@@ -29,8 +29,13 @@ class DynamoDBWrapper
     {
         $results = array();
 
-        while (count($keys) > 0) {
-            $targetKeys = array_splice($keys, 0, 100);
+        $ddbKeys = array();
+        foreach ($keys as $key) {
+            $ddbKeys[] = $this->convertAttributes($key);
+        }
+
+        while (count($ddbKeys) > 0) {
+            $targetKeys = array_splice($ddbKeys, 0, 100);
 
             $result = $this->client->batchGetItem(array(
                 'RequestItems' => array(
@@ -45,7 +50,7 @@ class DynamoDBWrapper
             // if some keys not processed, try again as next request
             $unprocessedKeys = $result->getPath("UnprocessedKeys/{$tableName}");
             if (count($unprocessedKeys) > 0) {
-                $keys = array_merge($keys, $unprocessedKeys);
+                $ddbKeys = array_merge($ddbKeys, $unprocessedKeys);
             }
         }
 
@@ -72,7 +77,7 @@ class DynamoDBWrapper
     {
         $args = array(
             'TableName' => $tableName,
-            'KeyConditions' => $keyConditions,
+            'KeyConditions' => $this->convertConditions($keyConditions),
             'ScanIndexForward' => true,
             'Limit' => 100,
         );
@@ -96,7 +101,7 @@ class DynamoDBWrapper
     {
         $args = array(
             'TableName' => $tableName,
-            'KeyConditions' => $keyConditions,
+            'KeyConditions' => $this->convertConditions($keyConditions),
             'Select' => 'COUNT',
         );
         if (isset($options['IndexName'])) {
@@ -110,7 +115,7 @@ class DynamoDBWrapper
     {
         $items = $this->client->getIterator('Scan', array(
             'TableName' => $tableName,
-            'ScanFilter' => $filter,
+            'ScanFilter' => $this->convertConditions($filter),
         ));
         return $this->convertItems($items);
     }
@@ -119,7 +124,7 @@ class DynamoDBWrapper
     {
         $args = array(
             'TableName' => $tableName,
-            'Item' => $item,
+            'Item' => $this->convertAttributes($item),
         );
         if (!empty($expected)) {
             $item['Expected'] = $expected;
@@ -136,43 +141,15 @@ class DynamoDBWrapper
 
     public function batchPut($tableName, $items)
     {
-        $unprocessedRequests = array();
-
-        while (count($items) > 0) {
-            $requests = array();
-
-            if (count($unprocessedRequests) > 0) {
-                $requests = array_merge($requests, $unprocessedRequests);
-            }
-
-            $targetItems = array_splice($items, 0, 25 - count($requests));
-            foreach ($targetItems as $targetItem) {
-                $requests[] = array(
-                    'PutRequest' => array(
-                        'Item' => $targetItem
-                    )
-                );
-            }
-
-            $result = $this->client->batchWriteItem(array(
-                'RequestItems' => array(
-                    $tableName => $requests,
-                ),
-            ));
-
-            // if some items not processed, try again as next request
-            $unprocessedRequests = $result->getPath("UnprocessedItems/{$tableName}");
-        }
-
-        return true;
+        return $this->batchWrite('PutRequest', $tableName, $items);
     }
 
     public function update($tableName, $key, $update, $expected = array())
     {
         $args = array(
             'TableName' => $tableName,
-            'Key' => $key,
-            'AttributeUpdates' => $update,
+            'Key' => $this->convertAttributes($key),
+            'AttributeUpdates' => $this->convertUpdateAttributes($update),
             'ReturnValues' => 'UPDATED_NEW',
         );
         if (!empty($expected)) {
@@ -192,7 +169,7 @@ class DynamoDBWrapper
     {
         $args = array(
             'TableName' => $tableName,
-            'Key' => $key,
+            'Key' => $this->convertAttributes($key),
             'ReturnValues' => 'ALL_OLD',
         );
         $result = $this->client->deleteItem($args);
@@ -201,50 +178,66 @@ class DynamoDBWrapper
 
     public function batchDelete($tableName, $keys)
     {
-        $unprocessedRequests = array();
+        return $this->batchWrite('DeleteRequest', $tableName, $keys);
+    }
 
-        while (count($keys) > 0) {
-            $requests = array();
+    protected function batchWrite($requestType, $tableName, $items)
+    {
+        $entityKeyName = ($requestType === 'PutRequest' ? 'Item' : 'Key');
 
-            if (count($unprocessedRequests) > 0) {
-                $requests = array_merge($requests, $unprocessedRequests);
-            }
+        $requests = array();
+        foreach ($items as $item) {
+            $requests[] = array(
+                $requestType => array(
+                    $entityKeyName => $this->convertAttributes($item)
+                )
+            );
+        }
 
-            $targetKeys = array_splice($keys, 0, 25 - count($requests));
-            foreach ($targetKeys as $targetKey) {
-                $requests[] = array(
-                    'DeleteRequest' => array(
-                        'Key' => $targetKey
-                    )
-                );
-            }
+        while (count($requests) > 0) {
+            $targetRequests = array_splice($requests, 0, 25);
 
             $result = $this->client->batchWriteItem(array(
                 'RequestItems' => array(
-                    $tableName => $requests,
+                    $tableName => $targetRequests
                 ),
             ));
 
             // if some items not processed, try again as next request
             $unprocessedRequests = $result->getPath("UnprocessedItems/{$tableName}");
+            if (count($unprocessedRequests) > 0) {
+                $requests = array_merge($requests, $unprocessedRequests);
+            }
         }
 
         return true;
     }
 
-    public function createTable($tableName, $hashKeyName, $hashKeyType, $rangeKeyName = null, $rangeKeyType = null, $secondaryIndices = null) {
+    public function createTable($tableName, $hashKey, $rangeKey = null, $secondaryIndices = null) {
 
         $attributeDefinitions = array();
         $keySchema = array();
 
         // HashKey
+        $hashKeyComponents = explode('::', $hashKey);
+        if (count($hashKeyComponents) < 2) {
+            $hashKeyComponents[1] = 'S';
+        }
+        $hashKeyName = $hashKeyComponents[0];
+        $hashKeyType = $hashKeyComponents[1];
         $attributeDefinitions []= array('AttributeName' => $hashKeyName, 'AttributeType' => $hashKeyType);
-        $keySchema []= array('AttributeName' => $hashKeyName, 'KeyType' => 'HASH');
+        $keySchema[] = array('AttributeName' => $hashKeyName, 'KeyType' => 'HASH');
 
         // RangeKey
-        if (isset($rangeKeyName)) {
-            $attributeDefinitions []= array('AttributeName' => $rangeKeyName, 'AttributeType' => $rangeKeyType);
-            $keySchema []= array('AttributeName' => $rangeKeyName, 'KeyType' => 'RANGE');
+        if (isset($rangeKey)) {
+            $rangeKeyComponents = explode('::', $rangeKey);
+            if (count($rangeKeyComponents) < 2) {
+                $rangeKeyComponents[1] = 'S';
+            }
+            $rangeKeyName = $rangeKeyComponents[0];
+            $rangeKeyType = $rangeKeyComponents[1];
+            $attributeDefinitions[] = array('AttributeName' => $rangeKeyName, 'AttributeType' => $rangeKeyType);
+            $keySchema[] = array('AttributeName' => $rangeKeyName, 'KeyType' => 'RANGE');
         }
 
         // Generate Args
@@ -319,6 +312,86 @@ class DynamoDBWrapper
                 'Key' => $key
             ));
         }
+    }
+
+    protected function convertAttributes($targets)
+    {
+        $newTargets = array();
+        foreach ($targets as $k => $v) {
+            $attrComponents = explode('::', $k);
+            if (count($attrComponents) < 2) {
+                $attrComponents[1] = 'S';
+            }
+            $newTargets[$attrComponents[0]] = array($attrComponents[1] => $v);
+        }
+        return $newTargets;
+    }
+
+    protected function convertUpdateAttributes($targets)
+    {
+        $newTargets = array();
+        foreach ($targets as $k => $v) {
+            $attrComponents = explode('::', $k);
+            if (count($attrComponents) < 2) {
+                $attrComponents[1] = 'S';
+            }
+            $newTargets[$attrComponents[0]] = array(
+                'Action' => $v[0],
+                'Value' => array($attrComponents[1] => $v[1]),
+            );
+        }
+        return $newTargets;
+    }
+
+    protected function convertConditions($conditions)
+    {
+        $ddbConditions = array();
+        foreach ($conditions as $k => $v) {
+            // Get attr name and type
+            $attrComponents = explode('::', $k);
+            if (count($attrComponents) < 2) {
+                $attrComponents[1] = 'S';
+            }
+            $attrName = $attrComponents[0];
+            $attrType = $attrComponents[1];
+
+            // Get ComparisonOperator and value
+            if ( ! is_array($v)) {
+                $v = array('EQ', $v);
+            }
+            $comparisonOperator = $v[0];
+            $value = count($v) > 1 ? $v[1] : null;
+
+            // Get AttributeValueList
+            if ($v[0] === 'BETWEEN') {
+                if (count($value) !== 2) {
+                    throw new Exception("Require 2 values as array for BETWEEN");
+                }
+                $attributeValueList = array(
+                    array($attrType => $value[0]),
+                    array($attrType => $value[1])
+                );
+            } else if ($v[0] === 'IN') {
+                $attributeValueList = array();
+                foreach ($value as $v) {
+                    $attributeValueList[] = array($attrType => $v);
+                }
+            } else if ($v[0] === 'NOT_NULL' || $v[0] === 'NULL') {
+                $attributeValueList = null;
+            } else {
+                $attributeValueList = array(
+                    array($attrType => $value),
+                );
+            }
+
+            // Constract key condition for DynamoDB
+            $ddbConditions[$attrName] = array(
+                'AttributeValueList' => $attributeValueList,
+                'ComparisonOperator' => $comparisonOperator
+            );
+        }
+
+        return $ddbConditions;
     }
 
     protected function convertItem($item)
