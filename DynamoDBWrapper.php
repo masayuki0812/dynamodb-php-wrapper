@@ -213,7 +213,7 @@ class DynamoDBWrapper
         return true;
     }
 
-    public function createTable($tableName, $hashKey, $rangeKey = null, $secondaryIndices = null) {
+    public function createTable($tableName, $hashKey, $rangeKey = null, $options = null) {
 
         $attributeDefinitions = array();
         $keySchema = array();
@@ -252,20 +252,20 @@ class DynamoDBWrapper
         );
 
         // Set Local Secondary Index if needed
-        if (isset($secondaryIndices)) {
+        if (isset($options['LocalSecondaryIndexes'])) {
             $LSI = array();
-            foreach ($secondaryIndices as $si) {
+            foreach ($options['LocalSecondaryIndexes'] as $i) {
                 $LSI []= array(
-                    'IndexName' => $si['name'].'Index',
+                    'IndexName' => $i['name'].'Index',
                     'KeySchema' => array(
                         array('AttributeName' => $hashKeyName, 'KeyType' => 'HASH'),
-                        array('AttributeName' => $si['name'], 'KeyType' => 'RANGE')
+                        array('AttributeName' => $i['name'], 'KeyType' => 'RANGE')
                     ),
                     'Projection' => array(
-                        'ProjectionType' => $si['projection_type']
+                        'ProjectionType' => $i['projection_type']
                     ),
                 );
-                $attributeDefinitions []= array('AttributeName' => $si['name'], 'AttributeType' => $si['type']);
+                $attributeDefinitions []= array('AttributeName' => $i['name'], 'AttributeType' => $i['type']);
             }
             $args['LocalSecondaryIndexes'] = $LSI;
             $args['AttributeDefinitions'] = $attributeDefinitions;
