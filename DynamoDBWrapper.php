@@ -322,7 +322,7 @@ class DynamoDBWrapper
             if (count($attrComponents) < 2) {
                 $attrComponents[1] = 'S';
             }
-            $newTargets[$attrComponents[0]] = array($attrComponents[1] => $v);
+            $newTargets[$attrComponents[0]] = array($attrComponents[1] => (string)$v);
         }
         return $newTargets;
     }
@@ -337,7 +337,7 @@ class DynamoDBWrapper
             }
             $newTargets[$attrComponents[0]] = array(
                 'Action' => $v[0],
-                'Value' => array($attrComponents[1] => $v[1]),
+                'Value' => array($attrComponents[1] => (string)$v[1]),
             );
         }
         return $newTargets;
@@ -357,7 +357,7 @@ class DynamoDBWrapper
 
             // Get ComparisonOperator and value
             if ( ! is_array($v)) {
-                $v = array('EQ', $v);
+                $v = array('EQ', (string)$v);
             }
             $comparisonOperator = $v[0];
             $value = count($v) > 1 ? $v[1] : null;
@@ -368,19 +368,19 @@ class DynamoDBWrapper
                     throw new Exception("Require 2 values as array for BETWEEN");
                 }
                 $attributeValueList = array(
-                    array($attrType => $value[0]),
-                    array($attrType => $value[1])
+                    array($attrType => (string)$value[0]),
+                    array($attrType => (string)$value[1])
                 );
             } else if ($v[0] === 'IN') {
                 $attributeValueList = array();
                 foreach ($value as $v) {
-                    $attributeValueList[] = array($attrType => $v);
+                    $attributeValueList[] = array($attrType => (string)$v);
                 }
             } else if ($v[0] === 'NOT_NULL' || $v[0] === 'NULL') {
                 $attributeValueList = null;
             } else {
                 $attributeValueList = array(
-                    array($attrType => $value),
+                    array($attrType => (string)$value),
                 );
             }
 
