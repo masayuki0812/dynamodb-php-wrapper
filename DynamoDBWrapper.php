@@ -335,9 +335,17 @@ class DynamoDBWrapper
             if (count($attrComponents) < 2) {
                 $attrComponents[1] = 'S';
             }
+            if (is_array($v[1])) {
+                $value = array();
+                foreach ($v[1] as $value_raw) {
+                    $value[] = (string)$value_raw;
+                }
+            } else {
+                $value = (string)$v[1];
+            }
             $newTargets[$attrComponents[0]] = array(
                 'Action' => $v[0],
-                'Value' => array($attrComponents[1] => (string)$v[1]),
+                'Value' => array($attrComponents[1] => $value),
             );
         }
         return $newTargets;
