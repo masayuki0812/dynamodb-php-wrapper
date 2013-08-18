@@ -314,6 +314,19 @@ class DynamoDBWrapper
         }
     }
 
+    protected function asString($value)
+    {
+        if (is_array($value)) {
+            $newValue = array();
+            foreach ($value as $v) {
+                $newValue[] = (string)$v;
+            }
+        } else {
+            $newValue = (string)$value;
+        }
+        return $newValue;
+    }
+
     protected function convertAttributes($targets)
     {
         $newTargets = array();
@@ -322,7 +335,7 @@ class DynamoDBWrapper
             if (count($attrComponents) < 2) {
                 $attrComponents[1] = 'S';
             }
-            $newTargets[$attrComponents[0]] = array($attrComponents[1] => (string)$v);
+            $newTargets[$attrComponents[0]] = array($attrComponents[1] => $this->asString($v));
         }
         return $newTargets;
     }
@@ -335,17 +348,9 @@ class DynamoDBWrapper
             if (count($attrComponents) < 2) {
                 $attrComponents[1] = 'S';
             }
-            if (is_array($v[1])) {
-                $value = array();
-                foreach ($v[1] as $value_raw) {
-                    $value[] = (string)$value_raw;
-                }
-            } else {
-                $value = (string)$v[1];
-            }
             $newTargets[$attrComponents[0]] = array(
                 'Action' => $v[0],
-                'Value' => array($attrComponents[1] => $value),
+                'Value' => array($attrComponents[1] => $this->asString($v[1])),
             );
         }
         return $newTargets;
@@ -365,7 +370,7 @@ class DynamoDBWrapper
 
             // Get ComparisonOperator and value
             if ( ! is_array($v)) {
-                $v = array('EQ', (string)$v);
+                $v = array('EQ', $this->asString($v));
             }
             $comparisonOperator = $v[0];
             $value = count($v) > 1 ? $v[1] : null;
@@ -376,19 +381,19 @@ class DynamoDBWrapper
                     throw new Exception("Require 2 values as array for BETWEEN");
                 }
                 $attributeValueList = array(
-                    array($attrType => (string)$value[0]),
-                    array($attrType => (string)$value[1])
+                    array($attrType => $this->asString($value[0])),
+                    array($attrType => $this->asString($value[1]))
                 );
             } else if ($v[0] === 'IN') {
                 $attributeValueList = array();
                 foreach ($value as $v) {
-                    $attributeValueList[] = array($attrType => (string)$v);
+                    $attributeValueList[] = array($attrType => $this->asString($v));
                 }
             } else if ($v[0] === 'NOT_NULL' || $v[0] === 'NULL') {
                 $attributeValueList = null;
             } else {
                 $attributeValueList = array(
-                    array($attrType => (string)$value),
+                    array($attrType => $this->asString($value)),
                 );
             }
 
