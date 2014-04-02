@@ -1,0 +1,20 @@
+{
+  "name": "aws/dynamodb-php-wrapper",
+  "require": {
+    "aws/aws-sdk-php": "2.*"
+  },
+  "keywords": ["aws","dynamodb"],
+  "authors": [
+        {
+            "name": "Masayuki Tanaka",
+            "email": "masayuki0812@mac.com",
+            "homepage": "https://github.com/masayuki0812",
+            "role": "Developer"
+        }
+  ],
+  "autoload": {
+    "psr-0": {
+      "": "."
+    }
+  }
+}
