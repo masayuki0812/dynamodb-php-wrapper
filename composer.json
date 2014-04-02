@@ -4,6 +4,7 @@
     "aws/aws-sdk-php": "2.*"
   },
   "description": "Access AWS DynamoDB through simpler interface.",
+  "license": "MIT",
   "keywords": ["aws","dynamodb"],
   "authors": [
         {
