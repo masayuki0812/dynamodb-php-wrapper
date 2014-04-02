@@ -3,6 +3,7 @@
   "require": {
     "aws/aws-sdk-php": "2.*"
   },
+  "description": "Access AWS DynamoDB through simpler interface.",
   "keywords": ["aws","dynamodb"],
   "authors": [
         {
