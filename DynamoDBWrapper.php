@@ -5,7 +5,7 @@ use Aws\DynamoDb\Exception\ConditionalCheckFailedException;
 
 class DynamoDBWrapper
 {
-    protected $ddb;
+    protected $client;
 
     public function __construct($args)
     {
