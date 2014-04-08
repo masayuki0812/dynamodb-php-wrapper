@@ -90,6 +90,9 @@ class DynamoDBWrapper
         if (isset($options['Limit'])) {
             $args['Limit'] = $options['Limit']+0;
         }
+        if (isset($options['ConsistentRead'])) {
+            $args['ConsistentRead'] = $options['ConsistentRead'];
+        }
         if (isset($options['ExclusiveStartKey'])) {
             $args['ExclusiveStartKey'] = $this->convertAttributes($options['ExclusiveStartKey']);
         }
