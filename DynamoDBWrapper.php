@@ -116,9 +116,14 @@ class DynamoDBWrapper
 
     public function scan($tableName, $filter, $limit = null)
     {
+        if (empty($filter)) {
+            $scanFilter = null;
+        } else {
+            $scanFilter = $this->convertConditions($filter);
+        }
         $items = $this->client->getIterator('Scan', array(
             'TableName' => $tableName,
-            'ScanFilter' => $this->convertConditions($filter),
+            'ScanFilter' => $scanFilter,
         ));
         return $this->convertItems($items);
     }
