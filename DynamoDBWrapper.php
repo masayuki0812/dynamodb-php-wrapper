@@ -227,10 +227,7 @@ class DynamoDBWrapper
         $keySchema = array();
 
         // HashKey
-        $hashKeyComponents = explode('::', $hashKey);
-        if (count($hashKeyComponents) < 2) {
-            $hashKeyComponents[1] = 'S';
-        }
+        $hashKeyComponents = $this->convertComponents($hashKey);
         $hashKeyName = $hashKeyComponents[0];
         $hashKeyType = $hashKeyComponents[1];
         $attributeDefinitions []= array('AttributeName' => $hashKeyName, 'AttributeType' => $hashKeyType);
@@ -238,10 +235,7 @@ class DynamoDBWrapper
 
         // RangeKey
         if (isset($rangeKey)) {
-            $rangeKeyComponents = explode('::', $rangeKey);
-            if (count($rangeKeyComponents) < 2) {
-                $rangeKeyComponents[1] = 'S';
-            }
+            $rangeKeyComponents = $this->convertComponents($rangeKey);
             $rangeKeyName = $rangeKeyComponents[0];
             $rangeKeyType = $rangeKeyComponents[1];
             $attributeDefinitions[] = array('AttributeName' => $rangeKeyName, 'AttributeType' => $rangeKeyType);
@@ -339,10 +333,7 @@ class DynamoDBWrapper
     {
         $newTargets = array();
         foreach ($targets as $k => $v) {
-            $attrComponents = explode('::', $k);
-            if (count($attrComponents) < 2) {
-                $attrComponents[1] = 'S';
-            }
+            $attrComponents = $this->convertComponents($k);
             $newTargets[$attrComponents[0]] = array($attrComponents[1] => $this->asString($v));
         }
         return $newTargets;
@@ -352,10 +343,7 @@ class DynamoDBWrapper
     {
         $newTargets = array();
         foreach ($targets as $k => $v) {
-            $attrComponents = explode('::', $k);
-            if (count($attrComponents) < 2) {
-                $attrComponents[1] = 'S';
-            }
+            $attrComponents = $this->convertComponents($k);
             $newTargets[$attrComponents[0]] = array(
                 'Action' => $v[0],
                 'Value' => array($attrComponents[1] => $this->asString($v[1])),
@@ -369,10 +357,7 @@ class DynamoDBWrapper
         $ddbConditions = array();
         foreach ($conditions as $k => $v) {
             // Get attr name and type
-            $attrComponents = explode('::', $k);
-            if (count($attrComponents) < 2) {
-                $attrComponents[1] = 'S';
-            }
+            $attrComponents = $this->convertComponents($k);
             $attrName = $attrComponents[0];
             $attrType = $attrComponents[1];
 
@@ -453,5 +438,19 @@ class DynamoDBWrapper
             $converted []= $this->convertItem($item);
         }
         return $converted;
+    }
+
+    /**
+     * convert string attribute paramter to array components.
+     * 
+     * @param string $attribute double colon separated string "<Attribute Name>::<Attribute type>"
+     * @return array parsed parameter. [0]=<Attribute Name>, [1]=<Attribute type>
+     */
+    protected function convertComponents($attribute){
+        $components = explode('::', $attribute);
+        if (count($components) < 2) {
+            $components[1] = 'S';
+        }
+        return $components;
     }
 }
