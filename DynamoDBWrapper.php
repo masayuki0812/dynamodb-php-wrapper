@@ -1,5 +1,7 @@
 <?php
 
+// Taken from https://github.com/masayuki0812/dynamodb-php-wrapper
+
 use Aws\DynamoDb\DynamoDbClient;
 use Aws\DynamoDb\Exception\ConditionalCheckFailedException;
 
@@ -7,9 +9,20 @@ class DynamoDBWrapper
 {
     protected $client;
 
-    public function __construct($args)
+    public function __construct($args = NULL)
     {
+      if (!empty($args))
+      {
         $this->client = DynamoDbClient::factory($args);
+      }
+    }
+
+    public static function createFromClient($client)
+    {
+      $dyn = new DynamoDBWrapper();
+      $dyn->client = $client;
+
+      return $dyn;
     }
 
     public function get($tableName, $key, $options = array())
@@ -117,7 +130,7 @@ class DynamoDBWrapper
     public function scan($tableName, $filter, $limit = null)
     {
         if (empty($filter)) {
-            $scanFilter = null;
+            $scanFilter = array();
         } else {
             $scanFilter = $this->convertConditions($filter);
         }
@@ -212,9 +225,12 @@ class DynamoDBWrapper
             ));
 
             // if some items not processed, try again as next request
-            $unprocessedRequests = $result->getPath("UnprocessedItems/{$tableName}");
-            if (count($unprocessedRequests) > 0) {
-                $requests = array_merge($requests, $unprocessedRequests);
+            if (count($result->UnprocessedItems) > 0)
+            {
+                $unprocessedRequests = $result->getPath("UnprocessedItems/{$tableName}");
+                if (count($unprocessedRequests) > 0) {
+                    $requests = array_merge($requests, $unprocessedRequests);
+                }
             }
         }
 
@@ -442,7 +458,7 @@ class DynamoDBWrapper
 
     /**
      * convert string attribute paramter to array components.
-     * 
+     *
      * @param string $attribute double colon separated string "<Attribute Name>::<Attribute type>"
      * @return array parsed parameter. [0]=<Attribute Name>, [1]=<Attribute type>
      */
