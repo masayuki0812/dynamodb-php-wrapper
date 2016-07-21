@@ -225,7 +225,8 @@ class DynamoDBWrapper
             ));
 
             // if some items not processed, try again as next request
-            if (count($result->UnprocessedItems) > 0)
+            $unprocessedItems = $result->getPath("UnprocessedItems");
+            if ($unprocessedItems && count($unprocessedItems) > 0)
             {
                 $unprocessedRequests = $result->getPath("UnprocessedItems/{$tableName}");
                 if (count($unprocessedRequests) > 0) {
